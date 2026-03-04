@@ -1,0 +1,54 @@
+# ===========================================
+# Solana HFT Ultimate v4.2 - .gitignore
+# NIEMALS echte Credentials committen!
+# ===========================================
+
+# Secrets & Credentials
+.env
+*.key
+*.pem
+*.p12
+keypair.json
+wallet.json
+
+# Rust Build
+target/
+Cargo.lock
+**/*.rs.bk
+
+# Logs
+*.log
+logs/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Config (mit echten Werten)
+triton-config.yaml
+config.yaml
+config.toml
+
+# Python cache (für Tools)
+__pycache__/
+*.pyc
+
+# Node (für Monitoring Tools)
+node_modules/
+
+# Test Output
+coverage/
+
+# Temp
+*.tmp
+*.bak
