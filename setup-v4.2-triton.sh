@@ -23,9 +23,7 @@ NC='\033[0m'
 info()    { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
-header()  { echo -e "
-${BLUE}======================================================================${NC}"; echo -e "${BLUE} $1${NC}"; echo -e "${BLUE}======================================================================${NC}
-"; }
+header()  { echo -e "\n${BLUE}======================================================================${NC}"; echo -e "${BLUE} $1${NC}"; echo -e "${BLUE}======================================================================${NC}\n"; }
 
 # ----- Konfiguration -----
 REPO_URL="https://github.com/Timson100x/solana-hft-ultimate-v4-triton-.git"
@@ -76,92 +74,56 @@ rustup component add clippy rustfmt
 info "Rust: $(rustc --version)"
 
 # ##############################################################################
-# SCHRITT 3: Projekt-Struktur & Rust Code
+# SCHRITT 3: Repository klonen / aktualisieren
 # ##############################################################################
-header "Schritt 3: HFT Trading System Code (v4.2)"
+header "Schritt 3: Repository einrichten"
 
 sudo mkdir -p "${PROJECT_DIR}"
 sudo chown "${USER}:${USER}" "${PROJECT_DIR}"
-cd "${PROJECT_DIR}"
 
-# --- src/main.rs ---
-mkdir -p src
-cat << 'EOF' > src/main.rs
-use solana_sdk::{
-    signature::{Keypair, Signer},
-    pubkey::Pubkey,
-};
-use std::sync::Arc;
-use tokio::time::{sleep, Duration};
-use rig_goat::RigGoat; // Mockup/Example Integration
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🚀 Starting Solana HFT Ultimate v4.2 (Triton Edition)");
-    
-    // Triton gRPC Stream Setup (Dragons Mouth)
-    let grpc_url = "timmys-mainnet-e441.rpcpool.com:443";
-    println!("📡 Connecting to Triton gRPC: {}", grpc_url);
-
-    // Rig GOAT Initialization
-    let goat = RigGoat::new();
-    println!("🐐 Rig GOAT active: {}", goat.is_active());
-
-    loop {
-        // High-speed sniping logic here
-        sleep(Duration::from_millis(10)).await;
-    }
-}
-EOF
-
-# --- src/pumptx.rs (v2 PDAs) ---
-cat << 'EOF' > src/pumptx.rs
-// Pump.fun v2 Instruction Building
-pub fn build_pump_v2_ix(mint: &Pubkey, user: &Pubkey) {
-    // Logic for new v2 PDAs at the end of account list
-    let pump_v2_pda = Pubkey::find_program_address(&[b"pump_v2", mint.as_ref()], &Pubkey::new_from_array([0u8; 32])).0;
-    println!("🔨 Built Pump v2 instruction for: {}", pump_v2_pda);
-}
-EOF
-
-# --- src/jitooptimized.rs ---
-cat << 'EOF' > src/jitooptimized.rs
-pub fn optimize_jito_bundle() {
-    println!("⚡ Jito Bundle Optimization: Active");
-    // frankfurt.mainnet.block-engine.jito.wtf
-}
-EOF
-
-# --- Cargo.toml ---
-cat << 'EOF' > Cargo.toml
-[package]
-name = "solana-hft-ultimate"
-version = "4.2.0"
-edition = "2021"
-
-[dependencies]
-solana-sdk = "1.18"
-solana-client = "1.18"
-tokio = { version = "1.0", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-dotenv = "0.15"
-rig-goat = "0.1" # Mock
-EOF
+if [ -d "${PROJECT_DIR}/.git" ]; then
+    info "Repository bereits vorhanden – aktualisiere…"
+    cd "${PROJECT_DIR}"
+    git pull --ff-only
+else
+    info "Klone Repository nach ${PROJECT_DIR}…"
+    git clone "${REPO_URL}" "${PROJECT_DIR}"
+    cd "${PROJECT_DIR}"
+fi
 
 # ##############################################################################
-# SCHRITT 4: Abschluss
+# SCHRITT 4: .env konfigurieren
+# ##############################################################################
+header "Schritt 4: Umgebungsvariablen konfigurieren"
+
+if [ ! -f "${PROJECT_DIR}/.env" ]; then
+    cp "${PROJECT_DIR}/.env.example" "${PROJECT_DIR}/.env"
+    warn ".env aus .env.example erstellt – bitte Secrets eintragen!"
+    warn "NIEMALS echte Tokens in die URL einbetten – nur als x-token Header!"
+else
+    info ".env bereits vorhanden – keine Änderungen."
+fi
+
+# ##############################################################################
+# SCHRITT 5: Bauen
+# ##############################################################################
+header "Schritt 5: Projekt bauen"
+
+cd "${PROJECT_DIR}"
+cargo build --release
+info "Build erfolgreich: ${PROJECT_DIR}/target/release/solana-hft-ultimate"
+
+# ##############################################################################
+# SCHRITT 6: Abschluss
 # ##############################################################################
 header "Setup Abgeschlossen"
 
-info "Projekt erstellt in ${PROJECT_DIR}"
-info "Triton gRPC ist vorkonfiguriert."
+info "Projekt bereit in ${PROJECT_DIR}"
+info "Triton gRPC ist vorkonfiguriert: ${TRITON_GRPC_URL}"
 
-echo -e "
-${GREEN}NÄCHSTE SCHRITTE FÜR IPHONE:${NC}"
-echo "1. Öffne die SSH App auf deinem iPhone."
-echo "2. Verbinde dich mit: ssh ubuntu@$(curl -s ifconfig.me)"
-echo "3. Gehe in den Ordner: cd ${PROJECT_DIR}"
-echo "4. Starte den Bot: cargo run --release"
+echo -e "\n${GREEN}NÄCHSTE SCHRITTE:${NC}"
+echo "1. Trage deine Secrets in ${PROJECT_DIR}/.env ein."
+echo "2. Starte den Bot: cd ${PROJECT_DIR} && cargo run --release"
+echo "   Oder als systemd-Service einrichten."
 
 info "Viel Erfolg beim Trading! 🚀"

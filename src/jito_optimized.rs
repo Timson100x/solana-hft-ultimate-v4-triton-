@@ -17,8 +17,7 @@ use crate::pump_tx::PumpTransaction;
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 /// Jito bundle submission endpoint (Frankfurt block engine).
-const JITO_BUNDLE_URL: &str =
-    "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles";
+const JITO_BUNDLE_URL: &str = "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles";
 
 /// Bundle status polling endpoint.
 const JITO_BUNDLE_STATUS_URL: &str =

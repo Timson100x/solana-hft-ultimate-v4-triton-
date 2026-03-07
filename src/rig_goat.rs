@@ -42,8 +42,7 @@ impl RigGoat {
     /// `GOAT_MODEL` to override the default model.
     pub fn from_env() -> Self {
         let api_key = std::env::var("XAI_API_KEY").unwrap_or_default();
-        let model =
-            std::env::var("GOAT_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string());
+        let model = std::env::var("GOAT_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string());
 
         Self {
             client: reqwest::Client::new(),

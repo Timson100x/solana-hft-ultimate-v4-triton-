@@ -41,6 +41,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Lint with Clippy
+        run: cargo clippy -- -D warnings
+        env:
+          RUST_BACKTRACE: 1
+
       - name: Build with Cargo
         run: cargo build --release
         env:

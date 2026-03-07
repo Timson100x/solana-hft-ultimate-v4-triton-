@@ -6,8 +6,12 @@
 //!
 //! Prometheus metrics are exposed on port 9091 (path `/metrics`).
 
-use prometheus::{register_counter, register_gauge, register_int_counter, Counter, Gauge, IntCounter};
+use prometheus::{
+    register_counter, register_gauge, register_int_counter, Counter, Encoder, Gauge, IntCounter,
+    TextEncoder,
+};
 use serde_json::json;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tracing::{info, warn};
 
 // ── Metrics ───────────────────────────────────────────────────────────────────
@@ -20,16 +24,13 @@ pub struct Metrics {
     #[allow(dead_code)]
     pub bundles_confirmed: IntCounter,
     /// AI YES verdicts (snipe approved).
-    #[allow(dead_code)]
     pub ai_yes: IntCounter,
     /// AI NO verdicts (filtered out).
-    #[allow(dead_code)]
     pub ai_no: IntCounter,
     /// Estimated unrealised PnL in SOL.
     #[allow(dead_code)]
     pub pnl_sol: Gauge,
     /// Dragon's Mouth stream reconnection count.
-    #[allow(dead_code)]
     pub stream_reconnects: Counter,
 }
 
@@ -49,23 +50,14 @@ impl Metrics {
             )
             .expect("register hft_bundles_confirmed_total"),
 
-            ai_yes: register_int_counter!(
-                "hft_ai_yes_total",
-                "AI YES verdicts – snipe approved"
-            )
-            .expect("register hft_ai_yes_total"),
+            ai_yes: register_int_counter!("hft_ai_yes_total", "AI YES verdicts – snipe approved")
+                .expect("register hft_ai_yes_total"),
 
-            ai_no: register_int_counter!(
-                "hft_ai_no_total",
-                "AI NO verdicts – launch filtered out"
-            )
-            .expect("register hft_ai_no_total"),
+            ai_no: register_int_counter!("hft_ai_no_total", "AI NO verdicts – launch filtered out")
+                .expect("register hft_ai_no_total"),
 
-            pnl_sol: register_gauge!(
-                "hft_pnl_sol",
-                "Estimated unrealised PnL in SOL"
-            )
-            .expect("register hft_pnl_sol"),
+            pnl_sol: register_gauge!("hft_pnl_sol", "Estimated unrealised PnL in SOL")
+                .expect("register hft_pnl_sol"),
 
             stream_reconnects: register_counter!(
                 "hft_stream_reconnects_total",
@@ -99,17 +91,32 @@ impl Monitor {
 
     /// Start the Prometheus metrics HTTP server on port 9091 (background task).
     ///
-    /// In production the tokio TCP listener accepts HTTP GET /metrics requests
-    /// and responds with the gathered Prometheus text format.
+    /// Binds a TCP listener on `0.0.0.0:9091` and spawns a task that serves
+    /// HTTP GET /metrics responses in the Prometheus text format.
     pub async fn start_metrics_server(&self) {
+        let listener = match tokio::net::TcpListener::bind("0.0.0.0:9091").await {
+            Ok(l) => l,
+            Err(e) => {
+                warn!("Failed to bind Prometheus metrics server on :9091 – {e:#}");
+                return;
+            }
+        };
         info!("📊 Prometheus metrics available at http://0.0.0.0:9091/metrics");
-        // Production implementation:
-        //
-        //   let listener = tokio::net::TcpListener::bind("0.0.0.0:9091").await?;
-        //   loop {
-        //       let (mut socket, _) = listener.accept().await?;
-        //       tokio::spawn(async move { serve_metrics(socket).await });
-        //   }
+
+        tokio::spawn(async move {
+            loop {
+                match listener.accept().await {
+                    Ok((mut stream, _)) => {
+                        tokio::spawn(async move {
+                            serve_metrics(&mut stream).await;
+                        });
+                    }
+                    Err(e) => {
+                        warn!("Metrics server accept error: {e:#}");
+                    }
+                }
+            }
+        });
     }
 
     /// Send a "trade executed" Telegram notification and increment the counter.
@@ -132,10 +139,7 @@ impl Monitor {
             return;
         }
 
-        let url = format!(
-            "https://api.telegram.org/bot{}/sendMessage",
-            self.bot_token
-        );
+        let url = format!("https://api.telegram.org/bot{}/sendMessage", self.bot_token);
 
         let payload = json!({
             "chat_id":    self.chat_id,
@@ -155,6 +159,33 @@ impl Monitor {
             }
         }
     }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/// Serve a single HTTP request with the Prometheus metrics text body.
+///
+/// Reads (and discards) the incoming HTTP request, then responds with the
+/// gathered metric families in the Prometheus exposition text format.
+async fn serve_metrics(stream: &mut tokio::net::TcpStream) {
+    // Drain the incoming request (we don't need the content).
+    let mut buf = [0u8; 1024];
+    let _ = stream.read(&mut buf).await;
+
+    let encoder = TextEncoder::new();
+    let metric_families = prometheus::gather();
+    let body = encoder
+        .encode_to_string(&metric_families)
+        .unwrap_or_default();
+
+    let response = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\n\r\n{}",
+        encoder.format_type(),
+        body.len(),
+        body
+    );
+
+    let _ = stream.write_all(response.as_bytes()).await;
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
