@@ -13,7 +13,6 @@ wallet.json
 
 # Rust Build
 target/
-Cargo.lock
 **/*.rs.bk
 
 # Logs
