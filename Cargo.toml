@@ -36,6 +36,12 @@ reqwest = { version = "0.11", features = ["json"] }
 # Base-58 encoding/decoding (Solana addresses & keys)
 bs58 = "0.5"
 
+# SHA-256 for PDA derivation (Solana's program address scheme)
+sha2 = "0.10"
+
+# ed25519 curve validation for PDA off-curve check
+curve25519-dalek = { version = "4", default-features = false }
+
 # Random numbers (shard selection jitter, nonce)
 rand = "0.8"
 

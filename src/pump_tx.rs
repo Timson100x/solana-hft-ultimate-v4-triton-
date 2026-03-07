@@ -8,7 +8,9 @@
 //! - Mayhem Mode: 8 new fee-recipient addresses are included, order is strict.
 
 use anyhow::{bail, Result};
+use curve25519_dalek::edwards::CompressedEdwardsY;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tracing::debug;
 
 use crate::triton::PUMP_PROGRAM_ID;
@@ -78,33 +80,20 @@ fn create_program_address(seeds: &[&[u8]], bump: u8, program_id: &[u8; 32]) -> R
     Ok(sha256_hash(&hasher_input))
 }
 
-/// Minimal SHA-256 implementation using the `sha2` algorithm inline.
-/// In production use the `sha2` crate; here we call the system via a
-/// well-known approach to avoid adding another dependency.
+/// SHA-256 via the `sha2` crate (matches Solana's PDA derivation).
 fn sha256_hash(data: &[u8]) -> [u8; 32] {
-    // Use a simple deterministic stub – real implementation uses sha2::Sha256.
-    // The PDA derivation is architecturally correct; the hash is a placeholder
-    // to keep the crate dependency surface minimal.
-    let mut result = [0u8; 32];
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for (i, &b) in data.iter().enumerate() {
-        h ^= b as u64;
-        h = h.wrapping_mul(0x100_0000_01b3);
-        result[i % 32] ^= (h & 0xff) as u8;
-    }
-    result
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    hasher.finalize().into()
 }
 
-/// Returns `true` when the 32-byte point is not on the ed25519 curve –
+/// Returns `true` when the 32-byte point is **not** on the ed25519 curve,
 /// i.e. it is a valid program-derived address.
 ///
-/// A proper implementation uses `curve25519_dalek`; this heuristic avoids
-/// the dependency while keeping the architecture correct.
+/// Uses `curve25519-dalek` — `CompressedEdwardsY::decompress()` returns `None`
+/// for points that are off the curve, which is the desired property.
 fn is_off_curve(point: &[u8; 32]) -> bool {
-    // Heuristic: the first byte of a valid PDA is typically < 128.
-    // Production code should call `curve25519_dalek::edwards::CompressedEdwardsY`
-    // and check decompress() returns None.
-    point[0] < 128
+    CompressedEdwardsY(*point).decompress().is_none()
 }
 
 /// Decode a Base-58 string into a 32-byte array.

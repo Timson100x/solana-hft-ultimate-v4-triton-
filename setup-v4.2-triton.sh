@@ -119,20 +119,28 @@ else
     info ".env already exists – skipping"
 fi
 
+# Fail fast if any critical secret still contains the placeholder value.
+check_placeholder() {
+    local var_name="$1" value="$2"
+    if [[ "${value}" == *"DEIN"* || "${value}" == *"HIER"* ]]; then
+        error "${var_name} still contains a placeholder value. Edit ${PROJECT_DIR}/.env first."
+    fi
+}
+
+# Source the .env (if it exists) so we can validate the values
+if [[ -f "${PROJECT_DIR}/.env" ]]; then
+    # shellcheck disable=SC1091
+    set -a; source "${PROJECT_DIR}/.env"; set +a
+    check_placeholder "TRITON_X_TOKEN"     "${TRITON_X_TOKEN:-}"
+    check_placeholder "WALLET_PRIVATE_KEY" "${WALLET_PRIVATE_KEY:-}"
+    check_placeholder "XAI_API_KEY"        "${XAI_API_KEY:-}"
+    check_placeholder "TELEGRAM_BOT_TOKEN" "${TELEGRAM_BOT_TOKEN:-}"
+fi
+
 # ##############################################################################
 # STEP 5: Build the bot
 # ##############################################################################
 header "Step 5: Build (release)"
-
-# TRITON_X_TOKEN must be set as an env var or in .env; it is never embedded
-# in the gRPC URL.  Export a stub value for the build step so cargo does not
-# fail on the Config::from_env() validation during integration tests.
-export TRITON_X_TOKEN="${TRITON_X_TOKEN:-build-placeholder}"
-export WALLET_PRIVATE_KEY="${WALLET_PRIVATE_KEY:-build-placeholder}"
-export WALLET_PUBLIC_KEY="${WALLET_PUBLIC_KEY:-build-placeholder}"
-export XAI_API_KEY="${XAI_API_KEY:-build-placeholder}"
-export TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-build-placeholder}"
-export TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-build-placeholder}"
 
 cargo build --release 2>&1
 info "Build successful: ${PROJECT_DIR}/target/release/solana-hft-ultimate"
