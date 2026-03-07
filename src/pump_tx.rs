@@ -76,8 +76,7 @@ impl PumpTransaction {
         // ── Derive PDAs ───────────────────────────────────────────────────────
 
         // v1 PDAs (still required)
-        let (global, _) =
-            Pubkey::find_program_address(&[b"global"], &PUMP_PROGRAM_ID);
+        let (global, _) = Pubkey::find_program_address(&[b"global"], &PUMP_PROGRAM_ID);
         let (bonding_curve, _) = Pubkey::find_program_address(
             &[b"bonding-curve", event.mint.as_ref()],
             &PUMP_PROGRAM_ID,
@@ -88,10 +87,8 @@ impl PumpTransaction {
             &[b"bonding-curve-v2", event.mint.as_ref()],
             &PUMP_PROGRAM_ID,
         );
-        let (pool_v2, _) = Pubkey::find_program_address(
-            &[b"pool-v2", event.mint.as_ref()],
-            &PUMP_PROGRAM_ID,
-        );
+        let (pool_v2, _) =
+            Pubkey::find_program_address(&[b"pool-v2", event.mint.as_ref()], &PUMP_PROGRAM_ID);
 
         // Associated token account for the payer
         let (ata, _) = Pubkey::find_program_address(
@@ -145,8 +142,7 @@ impl PumpTransaction {
             recent_blockhash,
         );
 
-        let serialized =
-            bincode::serialize(&tx).context("Failed to serialise transaction")?;
+        let serialized = bincode::serialize(&tx).context("Failed to serialise transaction")?;
 
         debug!(
             mint = %event.mint,
@@ -188,10 +184,8 @@ mod tests {
     #[test]
     fn bonding_curve_v2_pda_is_off_curve() {
         let mint = Pubkey::new_unique();
-        let (pda, _) = Pubkey::find_program_address(
-            &[b"bonding-curve-v2", mint.as_ref()],
-            &PUMP_PROGRAM_ID,
-        );
+        let (pda, _) =
+            Pubkey::find_program_address(&[b"bonding-curve-v2", mint.as_ref()], &PUMP_PROGRAM_ID);
         // PDAs are always off the Ed25519 curve by definition.
         assert!(!pda.is_on_curve());
     }
@@ -199,10 +193,8 @@ mod tests {
     #[test]
     fn pool_v2_pda_is_off_curve() {
         let base_mint = Pubkey::new_unique();
-        let (pda, _) = Pubkey::find_program_address(
-            &[b"pool-v2", base_mint.as_ref()],
-            &PUMP_PROGRAM_ID,
-        );
+        let (pda, _) =
+            Pubkey::find_program_address(&[b"pool-v2", base_mint.as_ref()], &PUMP_PROGRAM_ID);
         assert!(!pda.is_on_curve());
     }
 

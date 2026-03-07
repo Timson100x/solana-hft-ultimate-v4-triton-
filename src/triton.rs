@@ -87,12 +87,7 @@ impl TritonClient {
     /// This drives the main snipe loop for one shard.  In production the
     /// `next_launch_event` stub is replaced by the live yellowstone-grpc
     /// subscription stream.
-    pub async fn run(
-        &self,
-        wallet_key: &str,
-        monitor: &Monitor,
-        ai: &RigGoat,
-    ) -> Result<()> {
+    pub async fn run(&self, wallet_key: &str, monitor: &Monitor, ai: &RigGoat) -> Result<()> {
         info!("🔄 Dragon's Mouth stream active – waiting for Pump.fun launches…");
 
         // Production subscription attaches the auth header:
@@ -114,8 +109,10 @@ impl TritonClient {
                     // 1. AI gate – only snipe tokens approved by xAI Grok.
                     if !ai.should_snipe(&event).await {
                         debug!(mint = %event.mint, "AI filtered – skipping");
+                        monitor.metrics.ai_no.inc();
                         continue;
                     }
+                    monitor.metrics.ai_yes.inc();
 
                     // 2. Build v2 buy instruction (new PDAs appended at end).
                     let tx = match PumpTransaction::build_buy_v2(&event, wallet_key) {
@@ -134,7 +131,9 @@ impl TritonClient {
                                 mint = %event.mint,
                                 "✅ Bundle landed"
                             );
-                            monitor.notify_trade(&event.mint.to_string(), &bundle_id).await;
+                            monitor
+                                .notify_trade(&event.mint.to_string(), &bundle_id)
+                                .await;
                         }
                         Err(e) => {
                             warn!("Bundle submission failed: {e:#}");
