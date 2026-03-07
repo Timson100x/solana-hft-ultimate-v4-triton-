@@ -1,0 +1,43 @@
+[package]
+name = "solana-hft-ultimate"
+version = "4.2.0"
+edition = "2021"
+description = "High-frequency Solana trading bot – Triton Dragon's Mouth + Jito + xAI"
+repository = "https://github.com/Timson100x/solana-hft-ultimate-v4-triton-"
+
+[[bin]]
+name = "solana-hft-ultimate"
+path = "src/main.rs"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+futures-util = "0.3"
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# Logging / tracing (no println! – use tracing macros)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Environment variables (.env loading)
+dotenvy = "0.15"
+
+# HTTP client – Jito REST API, Telegram, xAI
+reqwest = { version = "0.11", features = ["json"] }
+
+# Base-58 encoding/decoding (Solana addresses & keys)
+bs58 = "0.5"
+
+# Random numbers (shard selection jitter, nonce)
+rand = "0.8"
+
+[dev-dependencies]
+tokio-test = "0.4"
